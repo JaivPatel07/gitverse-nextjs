@@ -1,16 +1,19 @@
+'use client'
+
+export const dynamic = 'force-dynamic'
+
 import React, { useState } from 'react'
 import Link from 'next/link'
-import { useRouter, usePathname, useSearchParams } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Mail, Lock, User, GitBranch, Loader2, CheckCircle2 } from 'lucide-react'
 import { Button, Input, Card, CardHeader, CardContent, toast } from '@/components/ui'
 import { useAuth } from '@/contexts/AuthContext'
 
 export default function Signup() {
   const router = useRouter()
-  const pathname = usePathname()
   const searchParams = useSearchParams()
   const { signup } = useAuth()
-  const repoUrl = searchParams.get('repoUrl') || ''
+  const repoUrl = searchParams?.get('repoUrl') || ''
 
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')

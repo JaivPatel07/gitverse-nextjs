@@ -1,5 +1,9 @@
+'use client'
+
+export const dynamic = 'force-dynamic'
+
 import { useState, useEffect } from 'react'
-import { useRouter, usePathname, useSearchParams } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Search, Grid, List, GitBranch, Clock, Activity } from 'lucide-react'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import {
@@ -30,9 +34,8 @@ interface Repository {
 
 export default function SearchPage() {
   const router = useRouter()
-  const pathname = usePathname()
   const searchParams = useSearchParams()
-  const initialUrl = searchParams.get('repoUrl') || ''
+  const initialUrl = searchParams?.get('repoUrl') || ''
 
   const [searchQuery, setSearchQuery] = useState(initialUrl)
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')

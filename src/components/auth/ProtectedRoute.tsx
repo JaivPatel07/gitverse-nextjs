@@ -16,7 +16,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
-      router.push(`/login?from=${encodeURIComponent(pathname)}`)
+      router.push(`/login?from=${encodeURIComponent(pathname || '/')}`)
     }
   }, [isLoading, isAuthenticated, router, pathname])
 

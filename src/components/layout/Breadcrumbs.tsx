@@ -1,3 +1,5 @@
+'use client'
+
 import React from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
@@ -14,13 +16,12 @@ interface BreadcrumbsProps {
 
 export const Breadcrumbs: React.FC<BreadcrumbsProps> = ({ items }) => {
   const pathname = usePathname()
-  const searchParams = useSearchParams()
 
   return (
     <nav className="flex items-center space-x-2 text-sm text-secondary-600 dark:text-secondary-400">
       {items.map((item, index) => {
         const isLast = index === items.length - 1
-        const isActive = location.pathname === item.path
+        const isActive = pathname === item.path
 
         return (
           <React.Fragment key={item.path}>
@@ -31,7 +32,7 @@ export const Breadcrumbs: React.FC<BreadcrumbsProps> = ({ items }) => {
               </span>
             ) : (
               <Link
-                to={item.path}
+                href={item.path}
                 className="hover:text-primary dark:hover:text-primary-400 transition-colors"
               >
                 {item.label}

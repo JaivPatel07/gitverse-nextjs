@@ -1,3 +1,7 @@
+'use client'
+
+export const dynamic = 'force-dynamic'
+
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { GitBranch, TrendingUp, Clock, Plus, Activity, Users, Code, ArrowRight } from 'lucide-react'

@@ -19,22 +19,19 @@ export async function POST(request: NextRequest) {
     const repository = await repositoryService.getRepository(repositoryId, user.userId)
 
     if (!repository) {
-      return NextResponse.json(
-        { error: 'Repository not found' },
-        { status: 404 }
-      )
+      return NextResponse.json({ error: 'Repository not found' }, { status: 404 })
     }
 
     const context = {
-      languages: repository.languages.map((l) => ({
+      languages: repository.languages.map((l: any) => ({
         name: l.name,
         percentage: l.percentage,
       })),
-      contributors: repository.contributors.map((c) => ({
+      contributors: repository.contributors.map((c: any) => ({
         name: c.name,
         commits: c.commits,
       })),
-      commits: repository.commits.slice(0, 10).map((c) => ({
+      commits: repository.commits.slice(0, 10).map((c: any) => ({
         message: c.message,
         author: c.authorName,
         date: c.committedAt.toISOString(),

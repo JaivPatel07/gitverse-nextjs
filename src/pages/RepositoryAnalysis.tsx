@@ -1,3 +1,7 @@
+'use client'
+
+export const dynamic = 'force-dynamic'
+
 import { useState, useEffect } from 'react'
 import { useParams } from 'next/navigation'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
@@ -41,7 +45,8 @@ const tabs: Tab[] = [
 ]
 
 export default function RepositoryAnalysis() {
-  const { id } = useParams()
+  const params = useParams()
+  const id = params?.id as string
   const router = useRouter()
   const { toast } = useToast()
   const [activeTab, setActiveTab] = useState<TabType>('overview')

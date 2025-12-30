@@ -1,20 +1,23 @@
+'use client'
+
+export const dynamic = 'force-dynamic'
+
 import React, { useState } from 'react'
 import Link from 'next/link'
-import { useRouter, usePathname, useSearchParams } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Mail, Lock, GitBranch, Loader2 } from 'lucide-react'
 import { Button, Input, Card, CardHeader, CardContent, toast } from '@/components/ui'
 import { useAuth } from '@/contexts/AuthContext'
 
 export default function Login() {
   const router = useRouter()
-  const pathname = usePathname()
   const searchParams = useSearchParams()
   const { login } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [isLoading, setIsLoading] = useState(false)
 
-  const from = searchParams.get('from') || '/dashboard'
+  const from = searchParams?.get('from') || '/dashboard'
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -45,7 +48,7 @@ export default function Login() {
         title: 'Success!',
         description: 'Welcome back to GitVerse',
       })
-      router.push(from, { replace: true })
+      router.push(from)
     } catch (error: any) {
       toast({
         title: 'Login Failed',
