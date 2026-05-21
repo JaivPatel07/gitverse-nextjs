@@ -18,7 +18,7 @@ export function EmptyState({
   onAction,
 }: EmptyStateProps) {
   return (
-<section className="flex flex-col items-center justify-center p-8 sm:p-12 text-center rounded-2xl border border-dashed border-border/60 bg-background/40 w-full min-h-[280px] transition-all animate-in fade-in">
+<section className="flex flex-col items-center justify-center p-8 sm:p-12 text-center rounded-2xl border border-dashed border-border/60 bg-background/40 w-full min-h-[280px] transition-all motion-safe:animate-in motion-safe:fade-in motion-reduce:animate-none">
       <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 mb-5 shadow-sm">
        <Icon className="h-8 w-8 text-primary"  aria-hidden="true" />
       </div>
@@ -31,7 +31,7 @@ export function EmptyState({
       {actionLabel && onAction && (
         <Button
   onClick={onAction}
-  className="bg-primary text-primary-foreground hover:bg-primary/90 transition-all duration-200 hover:scale-[1.02]"
+  className="bg-primary text-primary-foreground hover:bg-primary/90 transition-all duration-200 motion-safe:hover:scale-[1.02] motion-reduce:transform-none"
 >
           {actionLabel}
         </Button>
