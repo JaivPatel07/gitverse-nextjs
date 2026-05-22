@@ -25,7 +25,6 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
 import rehypeSanitize, { defaultSchema } from "rehype-sanitize";
-import { EmptyState } from "@/components/ui/EmptyState";
 
 interface RepositoryData {
   id: string;
@@ -189,14 +188,23 @@ export const RepositoryOverview = ({
   };
 
   const readmeSanitizeSchema = (() => {
-    // Allow common README HTML (like <img align="right" ...>) while keeping things safe.
+    // Refined schema for sanitizing README markdown
+    // Allows common README HTML (like alignment/size attributes for images, collapsible details, etc.)
+    // while preventing XSS, protocol-based exploits, and DOM clobbering.
     const schema: any = {
       ...(defaultSchema as any),
-      tagNames: Array.from(
-        new Set([...(defaultSchema as any).tagNames, "img"]),
-      ),
+      
+      // Note: "img" is already in defaultSchema.tagNames, so we don't need to add it manually.
+
+      // Explicitly restrict protocols for attributes to mitigate protocol-based XSS (e.g., javascript:)
+      protocols: {
+        ...((defaultSchema as any).protocols || {}),
+        href: ["http", "https", "mailto"], // Only allow safe URI schemes for links
+      },
+
       attributes: {
         ...((defaultSchema as any).attributes || {}),
+        // Allow target and rel attributes for links (essential for external links)
         a: Array.from(
           new Set([
             ...(((defaultSchema as any).attributes?.a as any[]) || []),
@@ -204,12 +212,14 @@ export const RepositoryOverview = ({
             "rel",
           ]),
         ),
+        // Allow standard image attributes used in READMEs (alignment, sizing, and lazy loading)
         img: ["src", "alt", "title", "width", "height", "align", "loading"],
       },
     };
 
     return schema;
   })();
+
 
   const formatTimeAgo = (timestamp: string) => {
     const date = new Date(timestamp);
