@@ -639,11 +639,16 @@ interface GetRepositoriesOptions {
 }
 
 export async function getRepositories({ userId, limit, cursor }: GetRepositoriesOptions) {
+  const cursorId = cursor ? parseInt(cursor, 10) : undefined;
+  if (cursor && (isNaN(cursorId!) || cursorId! <= 0)) {
+    throw new Error("Invalid cursor value");
+  }
+
   return prisma.repository.findMany({
     where: { userId },
     orderBy: [{ createdAt: "desc" }, { id: "desc" }],
     take: limit,
-    ...(cursor ? { cursor: { id: parseInt(cursor) }, skip: 1 } : {}),
+    ...(cursorId ? { cursor: { id: cursorId }, skip: 1 } : {}),
     include: {
       _count: {
         select: {
