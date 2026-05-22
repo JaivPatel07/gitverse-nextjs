@@ -83,6 +83,8 @@ export default function RepositoryAnalysis() {
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
 
   const pollingStartedAt = useRef<number | null>(null);
+  // Tracks last time progress changed � prevents falsely timing out active jobs
+  const lastProgressAt = useRef<number | null>(null);
   const elapsedTimer = useRef<NodeJS.Timeout | null>(null);
 
   // ── Elapsed seconds ticker ────────────────────────────────────────
@@ -130,6 +132,9 @@ export default function RepositoryAnalysis() {
     if (!pollingStartedAt.current) {
       pollingStartedAt.current = Date.now();
     }
+    if (!lastProgressAt.current) {
+      lastProgressAt.current = Date.now();
+    }
 
     let stopped = false;
     let intervalMs = POLL_INTERVAL_INITIAL_MS;
@@ -139,8 +144,8 @@ export default function RepositoryAnalysis() {
 
       // ── Timeout guard ──────────────────────────────────────────
       if (
-        pollingStartedAt.current &&
-        Date.now() - pollingStartedAt.current > ANALYSIS_TIMEOUT_MS
+        lastProgressAt.current &&
+        Date.now() - lastProgressAt.current > ANALYSIS_TIMEOUT_MS
       ) {
         stopped = true;
         setAnalysisTimedOut(true);
@@ -165,7 +170,8 @@ export default function RepositoryAnalysis() {
     return () => {
       stopped = true;
     };
-  }, [repository?.status, repository?.latestJob?.id, job?.id, job?.status]);
+  // analysisTimedOut included so Check Again restarts polling
+  }, [repository?.status, repository?.latestJob?.id, job?.id, job?.status, analysisTimedOut]);
 
   // ── Data fetchers ─────────────────────────────────────────────────
   const fetchRepository = async () => {
@@ -197,6 +203,10 @@ export default function RepositoryAnalysis() {
       );
 
       const nextJob = response.data.job || response.data;
+      // Reset lastProgressAt whenever progress changes
+      if (nextJob?.progressPercent !== undefined || nextJob?.progressMessage !== undefined) {
+        lastProgressAt.current = Date.now();
+      }
       setJob(nextJob);
 
       if (nextJob?.status === "DONE") {
@@ -401,6 +411,7 @@ export default function RepositoryAnalysis() {
                       setAnalysisTimedOut(false);
                       setAnalysisError(null);
                       pollingStartedAt.current = null;
+                      lastProgressAt.current = null;
                       setElapsedSeconds(0);
                       fetchRepository();
                     }}
