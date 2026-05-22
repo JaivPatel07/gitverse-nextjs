@@ -234,7 +234,9 @@ class RepositoryService {
                 ? await prisma_1.default.commit.findMany({
                     where: {
                         repositoryId,
-                        hash: { in: commits.map((c) => c.hash) },
+                        hash: {
+                            in: commits.map((commit) => commit.hash),
+                        },
                     },
                     select: { hash: true },
                 })
