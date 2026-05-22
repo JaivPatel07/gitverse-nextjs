@@ -61,7 +61,7 @@ export default function LandingPage() {
       searchRef.current?.focus();
     }
 
-    if (e.key === "Escape" && !isTyping) {
+  if(e.key === "Escape" && (document.activeElement === searchRef.current || !isTyping)) {
       setRepoUrl("");
       searchRef.current?.blur();
     }
