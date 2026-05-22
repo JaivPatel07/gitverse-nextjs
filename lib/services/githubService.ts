@@ -278,18 +278,35 @@ export class GitHubService {
     },
   ): Promise<GitHubRepository[]> {
     const endpoint = username ? `/users/${username}/repos` : "/user/repos";
+    const perPage = params?.per_page || 100;
+    const maxPages = 10;
 
-    const response = await this.client.get(endpoint, {
-      params: {
-        type: params?.type || "owner",
-        sort: params?.sort || "updated",
-        direction: params?.direction || "desc",
-        per_page: params?.per_page || 30,
-        page: params?.page || 1,
-      },
-    });
+    const all: GitHubRepository[] = [];
+    try {
+      for (let page = 1; page <= maxPages; page++) {
+        const response = await this.client.get(endpoint, {
+          params: {
+            type: params?.type || "owner",
+            sort: params?.sort || "updated",
+            direction: params?.direction || "desc",
+            per_page: perPage,
+            page,
+          },
+        });
 
-    return response.data;
+        const items: GitHubRepository[] = response.data;
+        if (!Array.isArray(items) || items.length === 0) break;
+        all.push(...items);
+        if (items.length < perPage) break;
+      }
+    } catch (error) {
+      if (isAxiosError(error) && error.response?.status === 404) {
+        return [];
+      }
+      throw sanitizeGitHubError(error);
+    }
+
+    return all;
   }
 
   /**
@@ -522,6 +539,7 @@ export class GitHubService {
   async getContributors(
     owner: string,
     repo: string,
+    params?: { per_page?: number },
   ): Promise<
     Array<{
       login: string;
@@ -529,17 +547,38 @@ export class GitHubService {
       avatar_url: string;
     }>
   > {
+    const perPage = Math.min(Math.max(params?.per_page ?? 100, 1), 100);
+    const maxPages = 5;
+
+    const all: Array<{
+      login: string;
+      contributions: number;
+      avatar_url: string;
+    }> = [];
     try {
-      const response = await this.client.get(
-        `/repos/${owner}/${repo}/contributors`,
-      );
-      return response.data;
+      for (let page = 1; page <= maxPages; page++) {
+        const response = await this.client.get(
+          `/repos/${owner}/${repo}/contributors`,
+          { params: { per_page: perPage, page } },
+        );
+
+        const items: Array<{
+          login: string;
+          contributions: number;
+          avatar_url: string;
+        }> = response.data;
+        if (!Array.isArray(items) || items.length === 0) break;
+        all.push(...items);
+        if (items.length < perPage) break;
+      }
     } catch (error) {
       if (isAxiosError(error) && error.response?.status === 404) {
         return [];
       }
       throw sanitizeGitHubError(error);
     }
+
+    return all;
   }
 
   /**
