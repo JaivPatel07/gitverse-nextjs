@@ -180,6 +180,7 @@ model Repository {
   analysisJobs   AnalysisJob[]
 
   @@map("repositories")
+  @@index([userId])
 }
 
 model AnalysisJob {
