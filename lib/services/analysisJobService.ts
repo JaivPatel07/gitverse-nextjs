@@ -55,10 +55,14 @@ export class AnalysisJobService {
   }): Promise<void> {
     const lockExtension = params.extendLockMs ?? DEFAULT_LOCK_MS;
 
+    const pct = params.update.progressPercent !== undefined
+      ? Math.max(0, Math.min(100, Math.round(params.update.progressPercent)))
+      : undefined;
+
     await prisma.analysisJob.update({
       where: { id: params.jobId },
       data: {
-        progressPercent: params.update.progressPercent,
+        progressPercent: pct,
         progressMessage: params.update.progressMessage,
         progressDetails: params.update.progressDetails as any,
         // Heartbeat: extend lock while we’re actively working
