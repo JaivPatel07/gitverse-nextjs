@@ -8,13 +8,15 @@ import '@/app/globals.css'
 
 export default function App({ Component, pageProps }: AppProps) {
   return (
-    <SessionProvider session={pageProps.session}>
-      <ThemeProvider>
-        <AuthProvider>
-          <Component {...pageProps} />
-          <Toaster />
-        </AuthProvider>
-      </ThemeProvider>
-    </SessionProvider>
+    <ErrorBoundary>
+      <SessionProvider session={pageProps.session}>
+        <ThemeProvider>
+          <AuthProvider>
+            <Component {...pageProps} />
+            <Toaster />
+          </AuthProvider>
+        </ThemeProvider>
+      </SessionProvider>
+    </ErrorBoundary>
   )
 }
