@@ -3,6 +3,11 @@ import bcrypt from "bcryptjs";
 import prisma from "@/lib/prisma";
 import { requireAuth, sanitizeError } from "@/lib/middleware";
 
+/**
+ * Handles authenticated password changes and invalidates
+ * existing sessions after a successful password update.
+ */
+
 export async function POST(request: NextRequest) {
   try {
     const user = await requireAuth(request);
@@ -57,19 +62,19 @@ export async function POST(request: NextRequest) {
     const hashedPassword = await bcrypt.hash(newPassword, 10);
 
     await prisma.$transaction([
-  prisma.user.update({
-    where: { id: user.userId },
-    data: {
-      passwordHash: hashedPassword,
-      passwordChangedAt: new Date(),
-    },
-  }),
-  prisma.session.deleteMany({
-    where: {
-      userId: user.userId,
-    },
-  }),
-]);
+      prisma.user.update({
+        where: { id: user.userId },
+        data: {
+          passwordHash: hashedPassword,
+          passwordChangedAt: new Date(),
+        },
+      }),
+    prisma.session.deleteMany({
+      where: {
+        userId: user.userId,
+      },
+    }),
+  ]);
 
     return NextResponse.json({ message: "Password changed successfully" });
   } catch (error: any) {

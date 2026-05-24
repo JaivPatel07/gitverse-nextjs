@@ -8,6 +8,11 @@ export interface AuthenticatedRequest {
   user: JWTPayload;
 }
 
+/**
+ * Resolves the authenticated user from either a JWT bearer token or a NextAuth session cookie.
+ * Rejects tokens issued before the user's latest password change.
+ */
+
 export async function getAuthUser(
   request: NextRequest
 ): Promise<JWTPayload | null> {
@@ -92,6 +97,10 @@ export async function getAuthUser(
   return userPayload;
 }
 
+/**
+ * Ensures the incoming request is authenticated.
+ * Throws an HttpError if authentication fails.
+ */
 export async function requireAuth(
   request: NextRequest
 ): Promise<JWTPayload> {
@@ -103,6 +112,10 @@ export async function requireAuth(
 
   return user;
 }
+
+/**
+ * Ensures the authenticated user owns the requested resource.
+ */
 
 export async function requireOwnership(
   request: NextRequest,
