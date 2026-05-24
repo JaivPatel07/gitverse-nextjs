@@ -1,25 +1,8 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import * as d3 from "d3";
-import { Card } from "@/components/ui";
-
-interface Node {
-  id: string;
-  name: string;
-  type: "folder" | "file";
-  size: number;
-  path: string;
-}
-
-interface Link {
-  source: string;
-  target: string;
-  strength: number;
-}
-
-interface GraphData {
-  nodes: Node[];
-  links: Link[];
-}
+import { Card, EmptyState } from "@/components/ui";
+import { Network } from "lucide-react";
+import { GraphAnalyzer } from "@/utils/graphAnalyzer";
 
 interface RepositoryFile {
   path: string;
@@ -109,8 +92,6 @@ const generateDependencyGraph = (repository?: Repository): GraphData => {
     }
   });
 
-  return { nodes, links };
-};
 
 interface CodeDependencyGraphProps {
   repository?: Repository;
@@ -119,6 +100,15 @@ interface CodeDependencyGraphProps {
 export function CodeDependencyGraph({ repository }: CodeDependencyGraphProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const tooltipRef = useRef<HTMLDivElement>(null);
+  
+  const [selectedNode, setSelectedNode] = useState<any>(null);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+
+  const graphAnalyzer = new GraphAnalyzer();
+  const graphData = graphAnalyzer.buildDependencyGraph(repository?.files || []);
+
+  const graphAnalyzer = new GraphAnalyzer();
+  const graphData = graphAnalyzer.buildDependencyGraph(repository?.files || []);
 
   useEffect(() => {
     if (!svgRef.current) return;
@@ -189,8 +179,9 @@ export function CodeDependencyGraph({ repository }: CodeDependencyGraphProps) {
       .selectAll("line")
       .data(links)
       .join("line")
-      .attr("stroke", "rgba(255,255,255,0.2)")
+      .attr("stroke", (d: any) => d.isCyclic ? "#ef4444" : "rgba(255,255,255,0.2)")
       .attr("stroke-width", (d: any) => d.strength * 2)
+      .attr("stroke-dasharray", (d: any) => d.isCyclic ? "5,5" : "none")
       .attr("stroke-opacity", 0.6);
 
     // Draw nodes
@@ -212,10 +203,14 @@ export function CodeDependencyGraph({ repository }: CodeDependencyGraphProps) {
             d.fx = event.x;
             d.fy = event.y;
           })
-          .on("end", (event: any, d: any) => {
-            if (!event.active) simulation.alphaTarget(0);
+          .on("end", (_event: any, d: any) => {
+            if (!d.active) simulation.alphaTarget(0);
             d.fx = null;
             d.fy = null;
+          })
+          .on("click", (_event: any, d: any) => {
+             // Let user click a node to view its AI summary
+             setSelectedNode(d);
           })
       );
 
@@ -287,7 +282,7 @@ export function CodeDependencyGraph({ repository }: CodeDependencyGraphProps) {
         link
           .transition()
           .duration(200)
-          .attr("stroke", "rgba(255,255,255,0.2)")
+          .attr("stroke", (l: any) => l.isCyclic ? "#ef4444" : "rgba(255,255,255,0.2)")
           .attr("stroke-opacity", 0.6);
 
         if (tooltipRef.current) {
@@ -344,7 +339,8 @@ export function CodeDependencyGraph({ repository }: CodeDependencyGraphProps) {
   }, [repository]);
 
   return (
-    <Card className="glass p-4 sm:p-6">
+    <div className="relative">
+    <Card className="glass p-4 sm:p-6 overflow-hidden">
       <div className="mb-4 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
         <div>
           <h3 className="text-base sm:text-lg font-semibold">
@@ -354,14 +350,16 @@ export function CodeDependencyGraph({ repository }: CodeDependencyGraphProps) {
             Interactive visualization of file dependencies and relationships
           </p>
         </div>
-        <div className="flex flex-wrap gap-3 sm:gap-4 text-xs">
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-purple-500 flex-shrink-0" />
-            <span>Folders</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-blue-500 flex-shrink-0" />
-            <span>Files</span>
+        <div className="flex flex-col sm:flex-row items-end sm:items-center gap-4 text-xs">
+          <div className="flex gap-3">
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 rounded-full bg-purple-500 flex-shrink-0" />
+              <span>Folders</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 rounded-full bg-blue-500 flex-shrink-0" />
+              <span>Files</span>
+            </div>
           </div>
         </div>
       </div>
@@ -404,5 +402,22 @@ export function CodeDependencyGraph({ repository }: CodeDependencyGraphProps) {
 />
 
     </Card>
+
+    {selectedNode && (
+      <ModuleSummaryPanel
+        nodeId={selectedNode.id}
+        nodeName={selectedNode.name}
+        nodeType={selectedNode.type}
+        repositoryFiles={repository?.files || []}
+        onClose={() => setSelectedNode(null)}
+        onOpenSettings={() => setIsSettingsOpen(true)}
+      />
+    )}
+
+    <AISettingsModal 
+      isOpen={isSettingsOpen} 
+      onClose={() => setIsSettingsOpen(false)} 
+    />
+    </div>
   );
 }
