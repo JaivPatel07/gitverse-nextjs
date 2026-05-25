@@ -23,7 +23,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Button } from "@/components/ui";
+import { Button, ThemeToggle } from "@/components/ui";
 import { CommandPalette } from "@/components/ui/CommandPalette";
 import { toast } from "@/hooks/use-toast";
 
@@ -172,7 +172,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
               <Menu className="h-5 w-5" />
             </button>
 
-            <div className="flex-1 flex items-center justify-end px-4 sm:px-6">
+            <div className="flex-1 flex items-center justify-end px-4 sm:px-6 gap-3">
               <Button
                 variant="outline"
                 className="hidden sm:flex relative h-9 w-full justify-start rounded-[0.5rem] bg-background/50 text-sm text-muted-foreground sm:pr-12 md:w-56 lg:w-64 border-border/50 hover:bg-accent/50"
@@ -184,6 +184,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
                   <span className="text-xs">⌘</span>K / Ctrl K
                 </kbd>
               </Button>
+              <ThemeToggle />
             </div>
 
             {/* User Profile Dropdown */}

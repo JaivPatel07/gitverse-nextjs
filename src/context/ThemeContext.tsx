@@ -6,52 +6,51 @@ type Theme = 'light' | 'dark'
 
 interface ThemeContextType {
   theme: Theme
+  setTheme: (theme: Theme) => void
   toggleTheme: () => void
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined)
 
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [theme, setTheme] = useState<Theme>('light')
-  const [mounted, setMounted] = useState(false)
+  const [theme, setThemeState] = useState<Theme>('light')
 
   useEffect(() => {
-    const saved = localStorage.getItem('theme')
+    const saved = localStorage.getItem('theme') as Theme | null
+    let activeTheme: Theme = 'light'
     if (saved) {
-      setTheme(saved as Theme)
+      activeTheme = saved
     } else {
       const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
-      setTheme(prefersDark ? 'dark' : 'light')
+      activeTheme = prefersDark ? 'dark' : 'light'
     }
-    setMounted(true)
-  }, [])
-
-  useEffect(() => {
-    if (!mounted) return
+    setThemeState(activeTheme)
     
     const root = document.documentElement
-    if (theme === 'dark') {
+    if (activeTheme === 'dark') {
       root.classList.add('dark')
-      localStorage.setItem('theme', 'dark')
     } else {
       root.classList.remove('dark')
-      localStorage.setItem('theme', 'light')
     }
-  }, [theme, mounted])
+  }, [])
+
+  const setTheme = (newTheme: Theme) => {
+    setThemeState(newTheme)
+    localStorage.setItem('theme', newTheme)
+    const root = document.documentElement
+    if (newTheme === 'dark') {
+      root.classList.add('dark')
+    } else {
+      root.classList.remove('dark')
+    }
+  }
 
   const toggleTheme = () => {
-    setTheme((prev) => (prev === 'light' ? 'dark' : 'light'))
+    setTheme(theme === 'light' ? 'dark' : 'light')
   }
 
-  // CodeRabbit Fix: Returns null during server-side rendering / initial hydration
-  // to avoid the unstyled light-theme flash (FOUC).
-  if (!mounted) {
-    return null
-  }
-
-  // CodeRabbit Fix: Cleaned up and consolidated duplicated return statements
   return (
-    <ThemeContext.Provider value={{ theme, toggleTheme }}>
+    <ThemeContext.Provider value={{ theme, setTheme, toggleTheme }}>
       {children}
     </ThemeContext.Provider>
   )
