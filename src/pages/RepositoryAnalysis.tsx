@@ -120,6 +120,7 @@ export default function RepositoryAnalysis() {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const pollingStartedAt = useRef<number | null>(null);
   const pollingJobRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -256,7 +257,6 @@ export default function RepositoryAnalysis() {
 
         pollingStartedAt.current = null;
         setIsAnalyzing(false);
-        setAnalysisError(nextJob?.error || "The repository analysis failed.");
         toast({
           title: "Analysis failed",
           description: msg,
