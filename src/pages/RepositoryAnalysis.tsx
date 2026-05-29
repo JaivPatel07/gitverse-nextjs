@@ -11,6 +11,7 @@ import { CommitHistory } from "@/components/repository/CommitHistory";
 import { Contributors } from "@/components/repository/Contributors";
 import { RepositoryInsights } from "@/components/repository/RepositoryInsights";
 import { RepositoryMentorTab } from "@/components/ai/RepositoryMentorTab";
+import { AIRepositoryOverlay } from "@/components/ai/AIRepositoryOverlay";
 
 import {
   Home,
@@ -120,6 +121,7 @@ export default function RepositoryAnalysis() {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const pollingStartedAt = useRef<number | null>(null);
   const pollingJobRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -256,7 +258,6 @@ export default function RepositoryAnalysis() {
 
         pollingStartedAt.current = null;
         setIsAnalyzing(false);
-        setAnalysisError(nextJob?.error || "The repository analysis failed.");
         toast({
           title: "Analysis failed",
           description: msg,
@@ -545,6 +546,28 @@ export default function RepositoryAnalysis() {
           </div>
         </Modal>
       </div>
+      {/* Floating AI Chat Overlay with Global Codebase RAG */}
+      {repository && (
+        <AIRepositoryOverlay
+          repository={{
+            id: repository.id,
+            name: repository.name,
+            description: repository.description,
+            languages: repository.languages || [],
+            stats: {
+              commits: repository.commits?.length || 0,
+              contributors: repository.contributors?.length || 0,
+              files: repository.files?.length || 0,
+              branches: repository.branches?.length || 0,
+              stars: repository.stars || 0,
+              forks: repository.forks || 0,
+            },
+            recentCommits: repository.commits || [],
+            contributors: repository.contributors || [],
+            branches: repository.branches || [],
+          }}
+        />
+      )}
     </DashboardLayout>
   );
 }
