@@ -402,9 +402,21 @@ async function handlePost(request: NextRequest) {
 
     const currentRetryCount = webhookEvent?.retryCount ?? 0;
     const maxRetries = webhookEvent?.maxRetries ?? 3;
-    const shouldRetry = currentRetryCount < maxRetries;
-    const retryDelay = Math.pow(2, currentRetryCount) * 1000;
-    
+
+    const errorMessage = String(error?.message || error).toLowerCase();
+    const isRetryable =
+      errorMessage.includes("timeout") ||
+      errorMessage.includes("network") ||
+      errorMessage.includes("rate limit") ||
+      errorMessage.includes("fetch failed") ||
+      errorMessage.includes("temporarily unavailable") ||
+      errorMessage.includes("econnreset") ||
+      errorMessage.includes("etimedout");
+
+    const shouldRetry = isRetryable && currentRetryCount < maxRetries;
+    // Exponential backoff: 10s, 20s, 40s, ... capped at 5 minutes
+    const retryDelay = Math.min(5 * 60_000, 10_000 * Math.pow(2, Math.max(0, currentRetryCount)));
+
     await prisma.webhookEvent.update({
       where: { id: eventId },
       data: {
