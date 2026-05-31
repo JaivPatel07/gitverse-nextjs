@@ -15,6 +15,9 @@ import { ImpactAnalysisService } from "@/lib/services/impact-analysis";
 import { SelfHealingService } from "@/lib/services/self-healing";
 import { secretDetector } from "@/lib/services/secret-detector";
 import { securityAlerts } from "@/lib/services/security-alerts";
+import { TimeoutEstimatorService } from "@/lib/services/timeout-estimator";
+import { webhookQueue } from "@/lib/services/webhook-queue";
+
 
 export const runtime = "nodejs";
 export const maxDuration = 300; // 5 minutes max duration for Vercel
@@ -40,6 +43,19 @@ function isInternalAuthorized(request: NextRequest): boolean {
 }
 
 export async function POST(request: NextRequest) {
+  const baseUrl = process.env.NEXTAUTH_URL || `http://${request.headers.get("host") || "localhost:3000"}`;
+  
+  try {
+    return await handlePost(request);
+  } finally {
+    // Crucial: Drain the queue by picking up the next pending jobs
+    webhookQueue.triggerWorkers(baseUrl).catch(err => {
+      console.error("[Worker] Failed to trigger next jobs:", err);
+    });
+  }
+}
+
+async function handlePost(request: NextRequest) {
   if (!isInternalAuthorized(request)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -70,6 +86,8 @@ export async function POST(request: NextRequest) {
     where: { id: eventId },
     data: { status: "processing" },
   });
+
+  const timeoutEstimator = new TimeoutEstimatorService();
 
   try {
     const payload = webhookEvent.payload as any;
@@ -258,6 +276,7 @@ export async function POST(request: NextRequest) {
         repo,
         number,
         githubToken: installationToken,
+        timeoutEstimator,
       });
 
       if (tokensConsumed) {
