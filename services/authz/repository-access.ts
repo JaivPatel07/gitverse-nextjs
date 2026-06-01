@@ -68,7 +68,19 @@ export class RepositoryAccess {
         };
       }
 
+      const VALID_ROLES: RepositoryRole[] = ["ORG_ADMIN", "REPO_ADMIN", "CONTRIBUTOR", "VIEWER"];
       const role = membership.role as RepositoryRole;
+
+      if (!VALID_ROLES.includes(role)) {
+        console.error(
+          `[CRITICAL] Unknown role "${membership.role}" for user ${userId} on repo ${repositoryId}`
+        );
+        return {
+          allowed: false,
+          repositoryExists: true,
+          reason: `Invalid organization role: ${membership.role}`,
+        };
+      }
 
       return {
         allowed: true,

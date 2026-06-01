@@ -121,5 +121,22 @@ describe("Repository IDOR & RBAC Authorization Engine", () => {
       expect(result.repositoryExists).toBe(false);
       expect(result.reason).toBe("Repository not found");
     });
+
+    it("Scenario 6: blocks invalid organization roles", async () => {
+      (prisma.repository.findUnique as jest.Mock).mockResolvedValue({
+        id: targetRepoId,
+        userId: directOwnerId,
+      });
+      (prisma.repositoryPolicyAssignment.findUnique as jest.Mock).mockResolvedValue({
+        organizationId: orgId,
+      });
+      (prisma.organizationMember.findUnique as jest.Mock).mockResolvedValue({
+        role: "INVALID_ROLE",
+      });
+
+      const result = await RepositoryAccess.checkAccess(targetRepoId, nonOwnerId);
+      expect(result.allowed).toBe(false);
+      expect(result.reason).toContain("Invalid organization role");
+    });
   });
 });
