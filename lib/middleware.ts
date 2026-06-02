@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyToken, verifyTokenWithUserValidation } from "./auth";
+import { verifyToken } from "./auth";
+import { getNextAuthSecret } from "./config/env";
 import type { JWTPayload } from "./auth";
 import prisma from "@/lib/prisma";
 import { getToken } from "next-auth/jwt";
@@ -65,7 +67,7 @@ export async function getAuthUser(
     try {
       const token = await getToken({
         req: request,
-        secret: process.env.NEXTAUTH_SECRET,
+        secret: getNextAuthSecret(),
       });
 
       if (token?.sub && token.email) {

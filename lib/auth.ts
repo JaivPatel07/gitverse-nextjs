@@ -3,13 +3,7 @@ import prisma from './prisma'
 import { getPrisma } from './prisma'
 import type { ExtendedPrismaClient } from './prisma'
 
-const JWT_SECRET: string = (() => {
-  const secret = process.env.JWT_SECRET;
-  if (!secret) {
-    throw new Error("JWT_SECRET environment variable is required");
-  }
-  return secret;
-})();
+import { getJwtSecret } from './config/env';
 
 export interface JWTPayload {
   userId: number;
@@ -118,7 +112,7 @@ export async function verifyTokenWithUserValidation(token: string): Promise<JWTP
 }
 
 export function generateToken(payload: JWTPayload): string {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: '7d' })
+  return jwt.sign(payload, getJwtSecret(), { expiresIn: '7d' })
 }
 
 /**
@@ -438,6 +432,7 @@ export async function invalidateAllUserTokens(
       reason,
       timestamp: new Date(),
     };
+    return jwt.verify(token, getJwtSecret()) as JWTPayload
   } catch (error) {
     console.error(`[JWT] Failed to invalidate tokens for user ${userId}:`, error);
     return null;

@@ -13,6 +13,11 @@ import {
   AI_REQUEST_LIMITS,
 } from "@/lib/utils/aiRequestValidation";
 import { orgRagIndex } from "@/lib/services/org-rag-index";
+import {
+  buildSafetySystemPrompt,
+  sanitizeTextContent,
+  assembleChatPrompt,
+} from "@/lib/utils/promptSanitization";
 
 // Allowed roles in the conversation history
 const ALLOWED_MESSAGE_ROLES = new Set(["user", "model", "assistant"]);
@@ -216,8 +221,8 @@ Do not include any Markdown formatting like \`\`\`json, explanation, or extra ch
 
         if (retrievedFiles.length > 0) {
           retrievedFilesContent = retrievedFiles
-            .map(f => `File: ${f.path}\nContent:\n\`\`\`\n${f.content}\n\`\`\`\n`)
-            .join("\n");
+            .map(f => `File: ${f.path}\nContent:\n${sanitizeTextContent(f.content)}`)
+            .join("\n\n");
         }
         
         // Add cross-repository context
@@ -227,7 +232,8 @@ Do not include any Markdown formatting like \`\`\`json, explanation, or extra ch
           const repoIdentifier = parsedUrl ? `${parsedUrl.owner}/${parsedUrl.repo}` : repository.name;
           const crossRepoContext = await orgRagIndex.retrieveCrossRepositoryContext(repoIdentifier, question, 2);
           if (crossRepoContext.length > 0) {
-            retrievedFilesContent += "\n\n--- CROSS-REPOSITORY CONTEXT ---\n" + crossRepoContext.join("\n\n");
+            const sanitizedCross = crossRepoContext.map(ctx => sanitizeTextContent(ctx)).join("\n\n");
+            retrievedFilesContent += "\n\n--- CROSS-REPOSITORY CONTEXT ---\n" + sanitizedCross;
           }
         } catch (crossRepoErr) {
           console.warn("Failed to retrieve cross-repo context:", crossRepoErr);
@@ -238,23 +244,46 @@ Do not include any Markdown formatting like \`\`\`json, explanation, or extra ch
       }
     }
 
-    // Construct the fully grounded RAG prompt
-    const enhancedPrompt = `You are an expert developer assistant for the repository "${repository.name}".
-You are answering a user's question about the codebase.
+    // Construct the fully grounded RAG prompt with prompt injection defense
+    const langText = repository.languages.map((l: any) => `${l.name} (${l.percentage}%)`).join(", ");
+    const statsText = `${repository.commits?.length || 0} commits, ${repository.contributors?.length || 0} contributors, ${repository.files?.length || 0} files`;
 
-Repository Context:
-- Name: ${repository.name}
-- Description: ${repository.description || "N/A"}
-- Languages: ${repository.languages.map((l: any) => `${l.name} (${l.percentage}%)`).join(", ")}
-- Stats: ${repository.commits?.length || 0} commits, ${repository.contributors?.length || 0} contributors, ${repository.files?.length || 0} files
+    let knowledgeContext = "";
+    if ((repository as any).knowledge) {
+      const k = (repository as any).knowledge;
+      knowledgeContext += `\nMaintainer Context (Highest Priority):\n`;
+      if (k.projectDescription) {
+        knowledgeContext += `Project Description: ${k.projectDescription}\n`;
+      }
+      if (k.architecturePrinciples) {
+        const ap = JSON.parse(k.architecturePrinciples);
+        if (ap.length) knowledgeContext += `Architecture Principles:\n- ${ap.join('\n- ')}\n`;
+      }
+      if (k.glossary) {
+        knowledgeContext += `Glossary:\n`;
+        Object.entries(k.glossary).forEach(([key, val]) => {
+          knowledgeContext += `- ${key}: ${val}\n`;
+        });
+      }
+      if (k.onboardingNotes) {
+        const on = JSON.parse(k.onboardingNotes);
+        if (on.length) knowledgeContext += `Onboarding Notes:\n- ${on.join('\n- ')}\n`;
+      }
+      knowledgeContext += `\n`;
+    }
 
-${retrievedFilesContent ? `===== RETRIEVED CODEBASE CONTEXT =====\n${retrievedFilesContent}\n===== END RETRIEVED CONTEXT =====\n` : ""}
+    const safetySystemPrompt = buildSafetySystemPrompt(repository.name);
+    const contextPayload = assembleChatPrompt({
+      repositoryName: repository.name,
+      repositoryDescription: repository.description || "N/A",
+      languages: langText,
+      stats: statsText,
+      retrievedFilesContent,
+      crossRepoContext: "",
+      question,
+    });
 
-Answer the following user question using the codebase context above. Ground your answer in the provided file contents and repository context.
-If code snippets from the retrieved files are relevant, explain and reference them in detail. If no relevant files are found, answer using the metadata.
-
-User Question: ${question}
-`;
+    const enhancedPrompt = `${safetySystemPrompt}\n\n${knowledgeContext}${contextPayload}`;
 
     // Invoke Gemini with history and grounded context
     const chatResult = await getGeminiService().chatRaw(enhancedPrompt, standardizedHistory);
